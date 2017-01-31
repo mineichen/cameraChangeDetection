@@ -1,0 +1,13 @@
+#General Pipelines
+gst-launch-1.0 autovideosrc ! videoconvert ! video/x-raw,framerate=\(fraction\)25/1,width=640,height=480,format=I420,payload=26 ! jpegenc ! rtpjpegpay ! udpsink host=127.0.0.1 port=5000
+gst-launch-1.0 udpsrc port=5000 ! application/x-rtp,encoding-name=JPEG,payload=26 ! rtpjpegdepay ! jpegdec ! autovideosink
+gst-launch-1.0 autovideosrc !  video/x-raw,framerate=\(fraction\)25/1,width=640,height=480 ! vtenc_h264_hw ! qtmux ! queue ! filesink location=copy.avi -e
+gst-launch-1.0 filesrc location=vid.h264 ! h264parse ! avdec_h264 ! videoconvert ! osxvideosink
+gst-launch-1.0 filesrc location=myvid.yuv ! videoparse width=1280 height=720 framerate=12/1 format=2 ! autovideoconvert ! osxvideosink
+gst-launch-1.0 --gst-plugin-path=. -v videotestsrc num-buffers=250 ! 'video/x-raw,format=(string)I420,width=320,height=240,framerate=(fraction)25/1' ! miuncamerachangedetector ! avimux name=mux ! filesink location=test.avi
+gst-launch-1.0 filesrc location=bump.yuv ! videoparse width=1280 height=720 format=2 ! avenc_jpeg2000 ! multifilesink location=bump_seq/im%06d.jpg
+
+#miunChangeDetecotor examples
+./build.sh && GST_DEBUG=miuncamerachangedetector:5 gst-launch-1.0 --gst-plugin-path=. filesrc location=rawVideos/changeScene.yuv ! videoparse width=1280 height=720 format=2 ! autovideoconvert ! 'video/x-raw,format=(string)GRAY8' ! miuncamerachangedetector ! jpegenc ! multifilesink location=seq/im%06d.jpg
+./build.sh && GST_DEBUG=miuncamerachangedetector:5 gst-launch-1.0 -e --gst-plugin-path=. filesrc location=rawVideos/changeScene.yuv ! videoparse width=1280 height=720 format=2 ! autovideoconvert ! 'video/x-raw,format=(string)GRAY8' ! miuncamerachangedetector ! autovideoconvert ! 'video/x-raw,format=(string)I420,width=1280,height=720,framerate=(fraction)25/1' ! x264enc ! h264parse ! mp4mux ! filesink location=test.mp4
+./build.sh && GST_DEBUG=miuncamerachangedetector:5 gst-launch-1.0 --gst-plugin-path=. filesrc location=rawVideos/changeScene.yuv ! videoparse width=1280 height=720 format=2 ! autovideoconvert ! 'video/x-raw,format=(string)GRAY8' ! miuncamerachangedetector ! avimux name=mux ! filesink location=test.avi
