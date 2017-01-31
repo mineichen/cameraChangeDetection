@@ -1,0 +1,19 @@
+version: '2'
+services:
+  halide:
+    user: halide
+    image: mineichen/halide:2016_10_25.1
+    volumes:
+    - ${PWD}/data:/home/halide/data
+    - ${PWD}/halide:/home/halide/code
+  opencv:
+    image: mineichen/opencv:3.2.0
+    volumes:
+    - ${PWD}/opencv:/home/opencv/code
+    - ${PWD}/data:/home/opencv/data
+  gstreamer:
+    user: gstreamer
+    image: mineichen/gstreamer:1.4.4.0
+    volumes:
+    - ${PWD}/data:/home/gstreamer/data
+    - ${PWD}/gstreamer:/home/gstreamer/code

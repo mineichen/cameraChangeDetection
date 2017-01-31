@@ -1,0 +1,15 @@
+/data
+build/*
+*.mp4
+*.avi
+
+
+.DS_Store
+
+/report/_minted-document
+/report/document.pdf
+*.log
+*.toc
+*.aux
+*.synctex.gz
+*.out
