@@ -132,6 +132,7 @@ gst_miuncamerachangedetector_init (GstMiunCameraChangeDetector *miuncamerachange
 {
     miuncamerachangedetector->ctr = 0;
     miuncamerachangedetector->poi = 0;
+    miuncamerachangedetector->unstableTill = 0;
 }
 
 void
@@ -352,23 +353,31 @@ static void checkPoiInNewImage(GstMiunCameraChangeDetector *miuncamerachangedete
     
     int i;
     uint16_t matchingPoints = 0;
-    
+#if MIUN_ANALYTIC
+    FILE * poiFp = fopen("poi.data", "a");
+    fprintf(poiFp, "Image : %u\n", miuncamerachangedetector->ctr);
+#endif
     for(i = 0; i < miuncamerachangedetector->poiLength; i++,bs++) {
-        //printf("calculate Position %i:%i", bs->x, bs->y);
         halideBuffer.min[0] = bs->x + MIUN_INPUT_OFFSET;
         halideBuffer.min[1] = bs->y + MIUN_INPUT_OFFSET;
         harris(input, &halideBuffer);
-        
-        //printf("%u"  ";%u"  "\n", bs->x, bs->y);
-        
+
         if(buff > (bs->value*3)/4) {
             matchingPoints++;
+#if MIUN_ANALYTIC
+            fprintf(poiFp, "%u %u 1\n", bs->x, bs->y);
+        } else {
+            fprintf(poiFp, "%u %u 0\n", bs->x, bs->y);
+#endif
         }
     }
 #if MIUN_ANALYTIC
-    FILE * poiFp = fopen("poi.data", "a");
+    fprintf(poiFp, "\n\n");
+    fclose(poiFp);
+    
+    FILE * matchesFp = fopen("matches.data", "a");
     fprintf(
-        poiFp,
+        matchesFp,
         "%u,%u,%u,%u\n",
         miuncamerachangedetector->ctr,
         matchingPoints,
@@ -376,7 +385,7 @@ static void checkPoiInNewImage(GstMiunCameraChangeDetector *miuncamerachangedete
         miuncamerachangedetector->poiLength - matchingPoints
     );
     
-    fclose(poiFp);
+    fclose(matchesFp);
 #endif
     
     if(matchingPoints <= miuncamerachangedetector->poiLength/2) {

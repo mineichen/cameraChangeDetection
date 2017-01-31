@@ -50,6 +50,7 @@ struct _GstMiunCameraChangeDetector
   uint32_t poiWidth;
   uint32_t poiHeight;
   int16_t poiLength;
+  uint8_t unstableTill;
 };
 
 struct _GstMiunCameraChangeDetectorClass
