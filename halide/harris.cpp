@@ -235,7 +235,7 @@ RegisterGenerator<HarrisGenerator> harris_generator{"harris_generator"};
 
 int main(int argc, char **argv)
 {
-#if 0
+#if 1
     return Halide::Internal::generate_filter_main(argc, argv, std::cerr);
 #else
     /**
