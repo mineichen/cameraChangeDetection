@@ -47,8 +47,8 @@
 #include <inttypes.h>
 #include <string.h>
 
-#define MIUN_IS_POI(buff) (buff > 0)
 #define MIUN_INPUT_OFFSET 4
+#define MIUN_ANALYTIC 1
 
 GST_DEBUG_CATEGORY_STATIC (gst_miuncamerachangedetector_debug_category);
 #define GST_CAT_DEFAULT gst_miuncamerachangedetector_debug_category
@@ -347,14 +347,11 @@ static void checkPoiInNewImage(GstMiunCameraChangeDetector *miuncamerachangedete
     
     BlockSummaryEntry* bs = miuncamerachangedetector->poi;
     
-    FILE * fp = fopen("poi.data", "a");
-    
     halideBuffer.min[0] = halideBuffer.min[1] = MIUN_INPUT_OFFSET;
     harris(input, &halideBuffer);
     
     int i;
     uint16_t matchingPoints = 0;
-    
     
     for(i = 0; i < miuncamerachangedetector->poiLength; i++,bs++) {
         //printf("calculate Position %i:%i", bs->x, bs->y);
@@ -368,14 +365,24 @@ static void checkPoiInNewImage(GstMiunCameraChangeDetector *miuncamerachangedete
             matchingPoints++;
         }
     }
+#if MIUN_ANALYTIC
+    FILE * poiFp = fopen("poi.data", "a");
+    fprintf(
+        poiFp,
+        "%u,%u,%u,%u\n",
+        miuncamerachangedetector->ctr,
+        matchingPoints,
+        miuncamerachangedetector->poiLength,
+        miuncamerachangedetector->poiLength - matchingPoints
+    );
     
-    fprintf(fp, "%u,%u,%u,%u\n", miuncamerachangedetector->ctr, matchingPoints, miuncamerachangedetector->poiLength, miuncamerachangedetector->poiLength - matchingPoints);
+    fclose(poiFp);
+#endif
     
     if(matchingPoints <= miuncamerachangedetector->poiLength/2) {
         calculatePoi(miuncamerachangedetector, input, output);
     }
     
-    fclose(fp);
 }
 
 
