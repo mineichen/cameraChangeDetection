@@ -30,6 +30,9 @@
  * </refsect2>
  */
 
+#define MIUN_INPUT_OFFSET 4
+#define MIUN_ANALYTIC 1
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -42,13 +45,14 @@
 #include <limits.h>
 #include <stdlib.h>
 #include "harris.h"
-#include "harris_uint8.h"
 #include <math.h>
 #include <inttypes.h>
 #include <string.h>
+#if MIUN_ANALYTIC
+    #include "harris_uint8.h"
+#endif
 
-#define MIUN_INPUT_OFFSET 4
-#define MIUN_ANALYTIC 1
+
 
 GST_DEBUG_CATEGORY_STATIC (gst_miuncamerachangedetector_debug_category);
 #define GST_CAT_DEFAULT gst_miuncamerachangedetector_debug_category
@@ -462,20 +466,11 @@ gst_miuncamerachangedetector_transform_frame (GstVideoFilter * filter, GstVideoF
   halideBuffers[1].min[0] = halideBuffers[1].min[1] = MIUN_INPUT_OFFSET;
   halideBuffers[1].extent[0] -= MIUN_INPUT_OFFSET * 2;
   halideBuffers[1].extent[1] -= MIUN_INPUT_OFFSET * 2;
-  
-  harris_uint8(&halideBuffers[0], &halideBuffers[1]);
 
-    /*
-    printf("Size %" PRId32 ":%" PRId32 " Stride = %" PRId32 ":%" PRId32 "\n",
-           halideBuffers[1].extent[0],
-           halideBuffers[1].extent[1],
-           halideBuffers[1].stride[0],
-           halideBuffers[1].stride[1]);
-    */
+#if MIUN_ANALYTIC
+  harris_uint8(&halideBuffers[0], &halideBuffers[1]);
+#endif
     
-  // initialize poi
-  // Work with int64 output
-  
   if(!miuncamerachangedetector->poi) {
       uint16_t blockWidth = 100,
         blockHeight = 100,
