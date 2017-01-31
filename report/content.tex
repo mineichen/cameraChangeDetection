@@ -1,6 +1,6 @@
 \chapter{Algorithm }
 \section{Functionality}
-The algorithm consists of two phases. In the first phase, an entire image is scanned to find prominent pixels, whose coordinates are stored in a vector. In the following images, the algorithm just calculates these specific points and checks if this point is still considered to be prominent. If there are too many points which are not prominent anymoore, a change is triggered and the next image is scanned for new prominent pixels. 
+The algorithm consists of three phases. In the first phase, an entire image is scanned to find prominent pixels, whose coordinates are stored in a vector. In the following images, the algorithm just calculates these specific points and checks if this point is still considered to be prominent. If there are too many points which are not prominent anymoore, a change is triggered and the next image is scanned for new prominent pixels. 
 
 \subsection{Phase 1; Finding pixels of interest}
 To find the pixels of interest (POI), the entire image is scanned with parts of the Harris edge filter.  But instead of finding local maximums to detect the corners, the algorithm divides the image into a configurable amount of subsections, horizontally and vertically. Each subsection is scanned for it's biggest corner-value. If this value exceeds a predefined threshold, his coordinates and his value are stoored into a vector. This selection leads to a better distribution accross the image. 
@@ -8,7 +8,7 @@ To find the pixels of interest (POI), the entire image is scanned with parts of 
 \begin{figure}[h!]
 	\centering
 	\includegraphics[width=0.9\linewidth]{bin/hotspots}
-	\caption{Camera image with a overlay of found edges in each subsection}
+	\caption{Camera image with a overlay of found edges in each subsection. The red circle in the right bottom represents a point which isn't considered to be an edge anymore. }
 	\label{fig:hotspots}
 \end{figure} 
 
@@ -16,7 +16,10 @@ To find the pixels of interest (POI), the entire image is scanned with parts of 
 \subsection{Phase 2; Check pixels of interest}
 From this point, just the coordinates stored in the vector which was created in phase 1 are calculated.  For each touple in the vector (e.g. x,y,value) newValue is determined in the new image at position x:y. When newValue is at least half as big as value, the point which the touple represents is still considered to be an corner. This relative solution, which is based on the previous value resulted in much less noise then when comparing it again to the threshold in Phase 1, because values close to the threshold were toggling to be a corner or not in each frame. Furthermoore, neighbour pixels of very strong edges were still considered to be edges, even though the image moved. 
 
-If the amount of missing corners becomes bigger than a percentage of the vectorsize, a change is triggered and Phase 1 executes to recalculate the vector. When the amount of found edges stabilizes on a count bigger than half of the expected amount of found corners , the  camera can be considered stable again.
+If the amount of missing corners becomes bigger than a percentage of the vectorsize, a changeStart is triggered and Phase 3 is entered.
+
+\subsection{Phase 3;  Stabilize}
+In the last phase, the algorithm waits untill the number of found edges stops changing for  3 Frames in a row ($\pm$ 1 corner tolerance). During this phase the vector might be recalculated as well if there are not enough matches.
 
 \subsection{Why Harris}
 Compared to simple Edge-Filters as Sobel or Prewitt, Harris finds corners where edges from Prewitt- or Sobelfilters are coming together. Therefore they are fragile to changes in all directions, whereas sobel and Prewitt are not fragil when the camera moves along the edges. The chance of accidentally hitting another corner is very small.
@@ -119,11 +122,43 @@ docker-compose run gstreamer sh code/build.sh
 The static Harris-Filter-library has to be copied into the gstreamer/lib/ folder  to be found by the compiler. \enquote{gstreamer/codes.txt} contains useful gst-launch pipelines with examples.
 
 \chapter{Results}
-In this chapter, the amount of corners found in the scenes are documented. The red line represents the amount of corners expected to be found and the blue line represents the amount of corners actually found at the given coordinates. During the analysis, the parameter which determines, which percentage of the original edgevalue a following point has to have, to be considered an corner, had a big influence in the result. Therefore the following sections contain the result with the parameters 50\% and 75\%.
+In this chapter, the amount of corners found in the scenes are documented. The red line in the diagrams represents the amount of corners expected to be found and the blue line represents the amount of corners actually found at the given coordinates. During the analysis, the parameter which determines, which percentage of the original edgevalue a following point has to have, to be considered a corner, had a big influence in the result. Therefore the following sections contain the result with the parameters 50\% and 75\%. The red areas in the 75\% diagrams show the timespan between changeStart and changeEnd.
+
 \section{Method}
-The following data is generated with a pipeline inside 
+The data used in the following diagrams is generated within a pipeline inside the gstreamer-plugin. In order to produce analytic data, the MIUN\_ANALYTIC precompiler variable has to be set to a non-zero value. Afterwards it produces the following files inside the \enquote{/gstreamer} folder:
+\begin{description}
+	\item[matches.data] 
+	Each row represents one image in the test sequence. The columns contain the following values:
+	\begin{enumerate}
+			\item{Frameindex}
+			\item{Number of corners found}
+			\item{Number of corners expected}
+			\item{Difference between courners found and expected}
+	\end{enumerate}
+	\item[poi.data] 
+		Contains the coordinates of all POIs for each image and weather they are still considered to be corners on that particular image.
+			\begin{enumerate}
+			\item{Position X}
+			\item{Position Y}
+			\item{1 if still a corner, 0 if not a corner anymore}
+		\end{enumerate}
+		 
+	\item[changes.data] 
+		Each row in that file represents a change which consists of a startframeindex and a endframeindex. This data is used to benchmark the algorithm.
+\end{description}
+
+For visual feedback, the following command transforms the raw video data into enumerated jpg-images.
+
+\begin{lstlisting}[language=bash]
+docker-compose run gstreamer gst-launch-1.0 \
+  filesrc location=data/raw/camVertMove.yuv \
+  ! videoparse width=1280 height=720 format=2 \
+  ! jpegenc \
+  ! multifilesink location=data/sequence/verticalMove/im%06d.jpg
+\end{lstlisting}
 
 \section{Bump}
+The algorithm works very precisely in that situation. It hasn't missed a single bump and reaches 0 false negatives and 0 false positives. All project goals are achieved.
 
 \begin{tikzpicture}
 	\begin{axis}[
@@ -142,7 +177,7 @@ The following data is generated with a pipeline inside
           xmin=0,
           xmax=200
         ]
-		\addplot table [x=frame, y=points, col sep=comma] {data/bump/final.csv};
+		\addplot table [x=frame,y=points, col sep=comma	] {data/bump/final.csv};
 		\addplot table [x=frame, y=total, col sep=comma] {data/bump/final.csv};
 	\end{axis}
 \end{tikzpicture}
@@ -164,12 +199,42 @@ ymin=0,
 xmin=0,
 xmax=200
 ]
-\addplot table [x=frame, y=points, col sep=comma] {data/bump/final3div4.csv};
+\addplot+[
+	emphasize=8:11 with red!10,
+	emphasize=24:35 with red!10,
+	emphasize=41:45 with red!10,
+	emphasize=59:65 with red!10,
+	emphasize=78:83 with red!10,
+	emphasize=93:99 with red!10,
+	emphasize=107:116 with red!10,
+	emphasize=121:127 with red!10,
+	emphasize=135:140 with red!10,
+	emphasize=148:155 with red!10,
+	emphasize=161:167 with red!10,
+	emphasize=175:181 with red!10,
+	emphasize=188:193 with red!10,
+	emphasize=202:212 with red!10,
+] table [x=frame, y=points, col sep=comma] {data/bump/final3div4.csv};
 \addplot table [x=frame, y=total, col sep=comma] {data/bump/final3div4.csv};
 \end{axis}
 \end{tikzpicture}
 
 \section{Scene change}
+In that sequence, there was no change triggered. The lowest amount of matching points was reached in Frame 630, where someone moved the chair which held many POIs in the scene. The black notebook-bag was moved permanently in frame number 470. 
+
+This shows, that the algorithm has a weakness for permanent changes in the scene. If too many of these happen, a change will trigger faster. Items which are moveing from the beginning on shouldn't be seen as edges, because they are blurry. But this is just an assumption of Markus Ineichen and isn't tested.
+
+Even tought a change was almost triggered in frame 630, there was no false positive and no false negative.
+
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\linewidth]{bin/changeSceneWorst}
+	\caption{Worst performance in changeScene sequence. Red Circle means not found anymore. Green and blue is used in a chess-like pattern to distinguish to which subsection a circle belongs to.}
+	\label{fig:hotspots}
+\end{figure} 
+
+
 \begin{tikzpicture}
 	\begin{axis}[
           width=\linewidth, % Scale the plot to \linewidth
@@ -185,12 +250,14 @@ xmax=200
           y tick label style={anchor=east,xshift=-2},
           ymin=0,
           xmin=0,
-          xmax=300
+          xmax=1500
         ]
 		\addplot table [x=frame, y=points, col sep=comma] {data/sceneChange/final.csv};
 		\addplot table [x=frame, y=total, col sep=comma] {data/sceneChange/final.csv};
 	\end{axis}
 \end{tikzpicture}
+
+
 \begin{tikzpicture}
 \begin{axis}[
 width=\linewidth, % Scale the plot to \linewidth
@@ -206,14 +273,14 @@ x tick label style={anchor=north,yshift=-2}, % Display labels sideways
 y tick label style={anchor=east,xshift=-2},
 ymin=0,
 xmin=0,
-xmax=300
+xmax=1500
 ]
 \addplot table [x=frame, y=points, col sep=comma] {data/sceneChange/final3div4.csv};
 \addplot table [x=frame, y=total, col sep=comma] {data/sceneChange/final3div4.csv};
 \end{axis}
 \end{tikzpicture}
 \subsection{NoChange}
-
+The following diagrams show that the algorithm doesn't trigger any unnecessary changes if the scene is not changed and the camera not touched.
 
 \begin{tikzpicture}
 	\begin{axis}[
@@ -229,7 +296,8 @@ xmax=300
           x tick label style={anchor=north,yshift=-2}, % Display labels sideways
           y tick label style={anchor=east,xshift=-2},
           ymin=0,
-          xmin=0
+          xmin=0,
+          xmax=1500
         ]
 		\addplot table [x=frame, y=points, col sep=comma] {data/noChange/final.csv};
 		\addplot table [x=frame, y=total, col sep=comma] {data/noChange/final.csv};
@@ -250,7 +318,8 @@ legend style={at={(0.5,-0.2)},anchor=north}, % Put the legend below the plot
 x tick label style={anchor=north,yshift=-2}, % Display labels sideways
 y tick label style={anchor=east,xshift=-2},
 ymin=0,
-xmin=0
+xmin=0,
+xmax=1500
 ]
 \addplot table [x=frame, y=points, col sep=comma] {data/noChange/final3div4.csv};
 \addplot table [x=frame, y=total, col sep=comma] {data/noChange/final3div4.csv};
@@ -258,7 +327,11 @@ xmin=0
 \end{tikzpicture}
 
 \subsection{Horizontal Move}
+Because of the recording technique, this sequece contains not only horizontal, but also many rotation movements. Somethimes there is no time to stabilize which leads to very long timeintervals between startChange and endChange events.
 
+12 times the pause between the movements was too short and/or bumpy so that two movements were considered to be one long movement. There was no change which happened not in between a startChange and endChange event. 
+
+At index 508 the algorithm triggered a movement which wasn't one. But 1/1547 is still under the threshold of 1\% and the project goals are therefore fulfilled in this sequence as well.
 
 \begin{tikzpicture}
 \begin{axis}[
@@ -282,6 +355,7 @@ xmax=100
 \end{axis}
 \end{tikzpicture}
 
+	
 \begin{tikzpicture}
 \begin{axis}[
 width=\linewidth, % Scale the plot to \linewidth
@@ -299,14 +373,20 @@ ymin=0,
 xmin=0,
 xmax=100
 ]
-\addplot table [x=frame, y=points, col sep=comma] {data/horizontalMove/final3div4.csv};
+\addplot+[
+	emphasize=1:8 with red!10,
+	emphasize=14:20 with red!10,
+	emphasize=32:57 with red!10,
+	emphasize=62:72 with red!10,
+	emphasize=78:92 with red!10
+] table [x=frame, y=points, col sep=comma] {data/horizontalMove/final3div4.csv};
 \addplot table [x=frame, y=total, col sep=comma] {data/horizontalMove/final3div4.csv};
 \end{axis}
 \end{tikzpicture}
 
 
 \subsection{Vertical Move}
-
+In this sequence it happens as well that two changes are summarized to one big movement ($~$18 Times). Specially at the end of the sequence, when the pause between the movements becomes smaller. But there was no bad detection and none happened not in between changeStart and changeEnd. There was no false Positive in this section. All the project goals are fulfilled.
 
 \begin{tikzpicture}
 \begin{axis}[
@@ -346,10 +426,20 @@ ymin=0,
 xmin=0,
 xmax=100
 ]
-\addplot table [x=frame, y=points, col sep=comma] {data/verticalMove/final3div4.csv};
+\addplot+[
+emphasize=5:14 with red!10,
+emphasize=23:30 with red!10,
+emphasize=39:48 with red!10,
+emphasize=56:69 with red!10,
+emphasize=74:83 with red!10,
+emphasize=91:99 with red!10
+] table [x=frame, y=points, col sep=comma] {data/verticalMove/final3div4.csv};
 \addplot table [x=frame, y=total, col sep=comma] {data/verticalMove/final3div4.csv};
 \end{axis}
 \end{tikzpicture}
 
+
 \section{Conclusion}
-Because of the requirements to have a low false negative rate, the parameter 75\% should be favourized
+The algorithm works very reliably on the tested sequences, because all the project goals were achieved. Gstreamer allows a easy porting onto the raspberry pi. The biggest weakness of the algorithm are constant changes in the scene. If this causes problems in the future, recalculations of the whole image should be considered to happen in a specific interval. This can even occur subsection by subsection in order to distribute the system load. 
+
+Because of the requirements to have a low false negative rate, the parameter 75\% should be favourized. However, both parameters had almost the same results in this sequences. 

@@ -46,16 +46,25 @@ void applyHarris(cv::Mat gray_image){
 void drawHotspots(cv::Mat image, const char* filename)
 {
     FILE * fp = fopen(filename, "r");
-    int x,y;
-    cv::Scalar red( 0, 255, 255 );
-    cv::Scalar blue( 255, 255, 0);
+    int x,y,found;
+    cv::Scalar red( 0, 0, 255 );
+    cv::Scalar blue( 255, 0, 0);
+    cv::Scalar green(0,255,0);
     const int filterOffset = 4;
     
     while(!feof(fp)) {
         fscanf(fp, "%d", &x);
         fscanf(fp, "%d", &y);
+        fscanf(fp, "%d", &found);
         
-        cv::circle(image, cv::Point(x+filterOffset,y+filterOffset), 10, (((x/100)+(y/100))%2) ? blue : red);
+        cv::circle(image, cv::Point(
+            x+filterOffset,
+            y+filterOffset),
+            10,
+            (found)
+                ? (((x/100)+(y/100))%2) ? blue : green
+                : red
+        );
     }
     
     for(int i = filterOffset; i < image.rows; i+=100) {

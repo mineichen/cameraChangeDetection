@@ -74,6 +74,18 @@
 	{€}{{\EUR}}1 {£}{{\pounds}}1
 }
 
+% code to enable highlighting in Diagrams
+\pgfplotsset{compat=1.7,
+	emphasize/.code args={#1:#2with#3}{
+		\pgfplotsextra{
+			\draw[fill=#3] ({axis cs:#1,0} |- {axis description cs:0,0}) 
+			rectangle ({axis cs:#2,0} |- {axis description cs:0,1});
+		}
+	}
+}
+
+% end code to enable highlighting
+
 \begin{document}
 	% Nicht einrücken
 	\setlength\parindent{0pt} 
