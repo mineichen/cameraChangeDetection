@@ -353,10 +353,10 @@ static void checkPoiInNewImage(GstMiunCameraChangeDetector *miuncamerachangedete
     
     int i;
     uint16_t matchingPoints = 0;
-#if MIUN_ANALYTIC
-    FILE * poiFp = fopen("poi.data", "a");
-    fprintf(poiFp, "Image : %u\n", miuncamerachangedetector->ctr);
-#endif
+    #if MIUN_ANALYTIC
+        FILE * poiFp = fopen("poi.data", "a");
+        fprintf(poiFp, "Image : %u\n", miuncamerachangedetector->ctr);
+    #endif
     for(i = 0; i < miuncamerachangedetector->poiLength; i++,bs++) {
         halideBuffer.min[0] = bs->x + MIUN_INPUT_OFFSET;
         halideBuffer.min[1] = bs->y + MIUN_INPUT_OFFSET;
@@ -386,12 +386,35 @@ static void checkPoiInNewImage(GstMiunCameraChangeDetector *miuncamerachangedete
     );
     
     fclose(matchesFp);
+    
+    FILE * changesFp = fopen("changes.data", "a");
 #endif
     
     if(matchingPoints <= miuncamerachangedetector->poiLength/2) {
+        if(!miuncamerachangedetector->unstableTill) {
+            #if MIUN_ANALYTIC
+                fprintf(changesFp, "%u", miuncamerachangedetector->ctr);
+            #endif
+        }
+        miuncamerachangedetector->lastPoiLength = matchingPoints;
+        miuncamerachangedetector->unstableTill = 2;
         calculatePoi(miuncamerachangedetector, input, output);
+    } else if(miuncamerachangedetector->unstableTill) {
+        if(abs(miuncamerachangedetector->lastPoiLength - matchingPoints) > 1) {
+            miuncamerachangedetector->unstableTill = 2;
+        } else {
+            miuncamerachangedetector->unstableTill--;
+            if(!miuncamerachangedetector->unstableTill) {
+                #if MIUN_ANALYTIC
+                fprintf(changesFp, " %u\n", miuncamerachangedetector->ctr);
+                #endif
+            }
+        }
+        miuncamerachangedetector->lastPoiLength = matchingPoints;
     }
-    
+#if MIUN_ANALYTIC
+    fclose(changesFp);
+#endif
 }
 
 
@@ -442,13 +465,13 @@ gst_miuncamerachangedetector_transform_frame (GstVideoFilter * filter, GstVideoF
   
   harris_uint8(&halideBuffers[0], &halideBuffers[1]);
 
-    
+    /*
     printf("Size %" PRId32 ":%" PRId32 " Stride = %" PRId32 ":%" PRId32 "\n",
            halideBuffers[1].extent[0],
            halideBuffers[1].extent[1],
            halideBuffers[1].stride[0],
            halideBuffers[1].stride[1]);
-    
+    */
     
   // initialize poi
   // Work with int64 output
