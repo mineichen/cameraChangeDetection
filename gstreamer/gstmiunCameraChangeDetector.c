@@ -352,9 +352,6 @@ static void checkPoiInNewImage(GstMiunCameraChangeDetector *miuncamerachangedete
     
     BlockSummaryEntry* bs = miuncamerachangedetector->poi;
     
-    halideBuffer.min[0] = halideBuffer.min[1] = MIUN_INPUT_OFFSET;
-    harris(input, &halideBuffer);
-    
     int i;
     uint16_t matchingPoints = 0;
     #if MIUN_ANALYTIC
