@@ -90,6 +90,36 @@ To assure repeatability, this experiment was executed on \\ https://www.tutorial
 
 
 \chapter {Technical implementation}
+\section{Recording}
+In order to get good video-testdata it is important to record it uncompressed to avoid changeing the imagedata. Unfortunately, this requires a big bandwidth.
+
+\subsection{Minimal requirements}
+\begin{description}
+	\item[Resolution] 1280x720px
+	\item[Framerate] 10fps
+	\item[Viewport] Full Area
+\end{description}
+If we record in the YUV color format, which uses 1.5 bytes per pixel, this already leads to 
+$$10 * 1280 * 720 * 1.5 = 13.2 MB/s$$
+
+Tests with the software sdbench.sh, which could be found in \enquote{raspberry/sdbench.sh}, showed, that the Raspbian SD-Card wasn't able to meet this requirement, because it's maximum SD-Card bandwidth was just about 10MB/s (\enquote{drivespeed.xlsx}). Unfortunately this was not indicated by an error but led to missing frame in the resulting file.
+
+Therefore, a \enquote{TOSHIBA EXCERIA XC 64GB} was used for further recordings, which, according to sdbench.sh, could handle framerates of 15.55 MB/s.
+
+Even thought the bandwidth was theoretically big enough, there were still missing frames. Therefore, a Byte-Ring-Buffer was implemented to record into RAM directly (\enquote{raspberry/StreamPump.py}). A separate Thread is constantly writing this Buffer into a file, which has three main advantages:
+\begin{description}
+	\item[Constant writing] No SD-card bandwidth is wasted during frame capturing. The separate thread is constantly writing.
+	\item[Shortterm increased Bandwidth] Because of the buffer, which might be several hundred MB in size, the recording bandwidth can exceed the SD-Card bandwith for short recordings.
+	\item[Error on failure] If the ring-buffer is full, an Exception is raised and Frames are not silently dropped anymore.
+\end{description}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\linewidth]{bin/ringbuffer}
+	\caption{Each arrow ring represents a working thread. }
+	\label{fig:ringbuffer}
+\end{figure} 
+
 \section{ Docker }
 This project uses docker, a lightwight container virtualization solution, to develop and test the quality of the algorithms. All images used in this project are published on hub.docker.com. Because they are autobuilt, which means that hub.docker.com builds them out of so called Dockerfiles, you can reliably see, how these images are set up. In order to execute the provided commands, it is sufficient to have docker up and running. All required files will be downloaded if it is not available locally.
 
@@ -392,7 +422,7 @@ xmax=100
 
 \pagebreak 
 \subsection{Vertical Move}
-In this sequence it happens as well that two changes are summarized to one big movement ($~$18 Times). Specially at the end of the sequence, when the pause between the movements becomes smaller. But there was no bad detection and none happened not in between changeStart and changeEnd. There was no false Positive in this section. All the project goals are fulfilled.
+In this sequence it happens as well that two changes are summarized to one big movement ($~$18 Times). Specially at the end of the sequence, when the pause between the movements becomes smaller. But there was no wront detection and none happened not in between changeStart and changeEnd events. There was no false Positive in this section. All the project goals are fulfilled.
 
 \begin{tikzpicture}
 \begin{axis}[
@@ -446,6 +476,6 @@ emphasize=91:99 with red!10
 
 
 \section{Conclusion}
-The algorithm works very reliably on the tested sequences, because all the project goals were achieved. Gstreamer allows a easy porting onto the raspberry pi. The biggest weakness of the algorithm are constant changes in the scene. If this causes problems in the future, recalculations of the whole image should be considered to happen in a specific interval. This can even occur subsection by subsection in order to distribute the system load. But it is important to consider, that very slow camera changes might not be detected anymore.
+The algorithm works very reliably on the tested sequences, because all the project goals were achieved. The algorithm hasn't missed a single change in the test sequences. Gstreamer allows a easy porting onto the raspberry pi, which was tested within the project. The biggest weakness of the algorithm are constant changes in the scene. If this causes problems in the future, recalculations of the whole image should be considered to happen in a specific interval. This can even occur subsection by subsection in order to distribute the system load. But it is important to consider, that very slow camera changes might not be detected anymore.
 
-Because of the requirements to have a low false negative rate, the parameter 75\% should be favourized. However, both parameters had almost the same results in this sequences. 
+Because of the requirements to have a low false negative rate, the parameter 75\% should be favourized. However, both parameters almost had the same results in this sequences. It just detected the changes one frame earlier sometimes. If tiny changes of the camera shouldn't trigger a change event, a lower percentage should be choosen.
