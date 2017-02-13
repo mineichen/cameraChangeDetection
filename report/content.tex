@@ -91,7 +91,7 @@ Tests with the software sdbench.sh \cite{sdbench}, showed, that the Raspbian SD-
 Therefore, a \enquote{TOSHIBA EXCERIA XC 64GB} was used for further recordings, which, according to sdbench.sh, can handle framerates up to 15.55 MB/s on the Raspberry pi.
 
 \subsection{Ring-byte-buffer}
-Even thought the bandwidth was theoretically big enough, there were still missing frames. Therefore, a byte-ring-buffer was implemented to record into RAM directly (fig. 4.2). The fact that a separate Thread is constantly writing this Buffer into a file, has three advantages:
+Even thought the bandwidth was theoretically big enough, there were still missing frames. Therefore, a byte-ring-buffer was implemented to record into RAM directly (fig. 4.2). The fact that a separate thread is constantly writing this Buffer into a file, has three advantages:
 \begin{description}
 	\item[Constant writing] No SD-card bandwidth is wasted during frame capturing. The separate thread is constantly writing.
 	\item[Shortterm increased Bandwidth] Because of the buffer, which might be several hundred MB in size, the recording bandwidth can exceed the SD-Card bandwith for short recordings.
@@ -113,7 +113,7 @@ In order to compare the results of different algorithms, 5 different settings we
 	\item[NoChange] The camera constantly points to an empty room and remains untouched. Because no movement is happening in the scene, no change should be triggered.
 	\item[ChangeScene] The camera constantly points to an empty room and remains untouched. Despite people walking around and objects are moved in the scene, the algorithm shouldn't trigger a change.
 	\item[ChangeHorizontal] The camera moves horizontaly, but the scene remains the same. Changes are expected to be triggered.
-	\item[ChangeVertical] Same as \enquote{Change horizontal} but in vertical direction.
+	\item[ChangeVertical] Same as \enquote{ChangeHorizontal} but in vertical direction.
 	\item[Bump] Hit the camera by hand. The scene remains unchanged. Even though the camera might come back to the same position after stabilization, a change should be triggered.
 \end{description}
 
@@ -527,7 +527,9 @@ emphasize=91:99 with red!10
 \chapter{Conclusion}
 The algorithm works very reliably on the tested sequences, because all sequences passed the project goals G1+G2. The algorithm hasn't missed a single change in the test sequences. Gstreamer allows a easy porting onto the raspberry pi, which was tested within the project (G3). The biggest weakness of the algorithm are constant changes in the scene. 
 
-Because of the requirements to have a low false negative rate, the parameter 75\% should be favourized. However, both parameters almost had the same results in this sequences. It just detected the changes one frame earlier sometimes. If tiny changes of the camera shouldn't trigger a change event, a lower percentage should be choosen.
+Because of the requirements to have a low false negative rate, the mentioned parameter mentioned in the "Results" chapter sould be 75\%. However, both parameters almost had the same results in this sequences. It just detected the changes one frame earlier sometimes. If tiny changes of the camera shouldn't trigger a change event, a lower percentage should be choosen.
+
+The halide programming language works great on the raspberry pi. The separation of schedule and algorithm allows to optimize the code without accidentaly changing the logic. The source code is very easy to understand. 
 
 \chapter{Outlook}
 The following sections suggest further studies about the algorithm. Beside mentioning the possible weakness, ideas for a solution of these problems is provided. 
