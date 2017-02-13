@@ -13,3 +13,5 @@ build
 *.aux
 *.synctex.gz
 *.out
+*.bbl
+*.blg

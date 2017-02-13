@@ -1,0 +1,10 @@
+\chapter{Abstract}
+Because recalibration of multi camera systems is computationally intensive, unnecessary recalculations should be avoided. In this project, an algorithm to detect camera movements was developed, which triggers a ChangeStart-Event when a camera starts to move and a ChangeStop-Event when the camera stabilizes in order to know when a revaluation is required. The difficulty lies in the constraint, that movements in the scene should not trigger a change.\newline
+ 
+Because the software is supposed to run on a raspberry pi,  "Halide", a programming language dedicated for image processing was used to achieve the necessary performance. In order to integrate the software into existing code, the algorithm is implemented as a plugin for the gstreamer-1.0 framework, which is used by the research departement for computer vision at mid Sweden university. \newline
+
+The resulted algorithm splits the image horizontally and vertically into a configurable amount of subsections. After filtering the entire image with a algorithm inspired by harris corner detection, the position of the pixel with the highest harris value in each subsection is stored in a vector. Subsequent images in the video-Stream just calculate the Harris corner value for these specific coordinates. If moore than 50\% of these coordinates are not considered to be corners anymore, the algorithm triggers a ChangeStart-Event. The changeStop-event is fired, when three subsequent images containt the same amount of edges. \newline
+
+Analysis with different scenes demonstrate that no change of the camera was missed and less than 1\textperthousand \ of all frames erroneously triggered a change.\newline
+
+Keywords: Raspicam, GSteamer, Halide, Camera-Change-Detection, Harris-corner-detection

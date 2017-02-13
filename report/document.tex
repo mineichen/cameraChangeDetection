@@ -16,11 +16,11 @@
 \usepackage{lastpage}
 \setkomafont{pageheadfoot}{\small\sffamily}
 \pagestyle{scrheadings}
-\lohead*{Camera movement detection using image analysis}
-\rohead*{}
-\lofoot*{Rough Concept}
-\cofoot*{}
-\rofoot*{Page \thepage \hspace{1pt} of \pageref{LastPage}}
+\lohead{Camera movement detection using image analysis\newline Markus Ineichen}
+\rohead*{\ \newline 2010-07-05}
+\lofoot*{}
+\cofoot*{ \thepage \hspace{1pt}}
+\rofoot*{ }
 
 \usepackage{lipsum}
 \usepackage{pgfplots}
@@ -29,6 +29,7 @@
 % M
 % Lange Tabellen
 \usepackage{longtable}
+\usepackage{subfigure} 
 
 % Bilder
 \usepackage{graphicx}
@@ -92,7 +93,7 @@
 	
 	\titlehead{MID SWEDEN UNIVERSITY \\ 
 		Information and Communication Systems}
-	\subject{Rough concept}
+	\subject{Report}
 	\title{Camera movement detection using image analysis}
 	\author{Markus Ineichen }
 	\date{\today}
@@ -100,8 +101,17 @@
 	\maketitle
 	
 	\renewcommand{\contentsname}{Contents}
+	\pagenumbering{Roman}
+	\include{prolog}
 	\tableofcontents
+	
+	\cleardoublepage
+	\pagenumbering{arabic}
 
 	\include{content}
+	\bibliography{literature}
+	\bibliographystyle{alpha}
+	
+	
 	
 \end{document}
